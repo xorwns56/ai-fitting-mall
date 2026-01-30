@@ -1,0 +1,3 @@
+rootProject.name = 'ai-fitting-mall'
+
+include 'backend:gateway-service'
