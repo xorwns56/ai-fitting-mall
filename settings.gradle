@@ -1,3 +1,6 @@
 rootProject.name = 'ai-fitting-mall'
 
 include 'backend:gateway-service'
+include 'backend:fitting-service'
+include 'backend:product-service'
+include 'backend:user-service'
