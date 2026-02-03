@@ -1,3 +1,8 @@
+# ===========================================
+# 로컬 개발환경 설정 (Docker Compose 환경)
+# 추후 k8s 배포 시 application-k8s.yaml에서 오버라이드
+# ===========================================
+
 spring:
   cloud:
     gateway:
@@ -22,3 +27,14 @@ spring:
             - Path=/api/fittings/**
           filters:
             - StripPrefix=1
+
+# -----------------------------------------
+# Zipkin 분산 추적 설정 (로컬)
+# -----------------------------------------
+management:
+  tracing:
+    sampling:
+      probability: 1.0  # 로컬에서는 모든 요청 추적 (프로덕션에서는 0.1 등으로 낮춤)
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans  # 로컬 Zipkin 서버 주소
