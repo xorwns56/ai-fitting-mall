@@ -1,0 +1,77 @@
+# GitHub Actions CI 워크플로우
+# main 브랜치에 push 시 각 서비스의 Docker 이미지를 빌드하고 GHCR에 푸시합니다.
+# 모든 step을 shell 명령어로 작성하여 Jenkins 등 다른 CI에서도 재사용 가능합니다.
+
+name: CI - Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'       # 백엔드/프론트엔드 코드 변경 시에만 빌드 (README 등 무시)
+      - 'frontend/**'
+      - '.github/workflows/ci.yaml'
+
+# 동일 브랜치에 연속 push 시 이전 실행 자동 취소 (CI 비용 절약)
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15  # 빌드 hang 방지
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false  # 한 서비스 실패해도 나머지 서비스 빌드 계속 진행
+      matrix:
+        service:
+          - name: gateway-service
+            context: ./backend/gateway-service
+          - name: user-service
+            context: ./backend/user-service
+          - name: product-service
+            context: ./backend/product-service
+          - name: fitting-service
+            context: ./backend/fitting-service
+          - name: frontend
+            context: ./frontend
+
+    steps:
+      # 소스코드를 CI 러너에 가져온다
+      - name: Checkout repository
+        run: |
+          git clone --depth 1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
+          git checkout ${{ github.sha }}
+
+      # 멀티 플랫폼 빌드와 캐시를 지원하는 Buildx 빌더를 생성한다
+      - name: Set up Docker Buildx
+        run: |
+          docker buildx create --use --name builder
+          docker buildx inspect --bootstrap
+
+      # GHCR에 이미지를 푸시할 수 있도록 레지스트리에 로그인한다
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      # Dockerfile을 기반으로 이미지를 빌드하고 GHCR에 푸시한다
+      - name: Build and push Docker image
+        run: |
+          IMAGE=$(echo "${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service.name }}" | tr '[:upper:]' '[:lower:]')
+
+          docker buildx build \
+            --push \
+            --tag "${IMAGE}:latest" \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            --cache-from type=registry,ref=${IMAGE}:buildcache \
+            --cache-to type=registry,ref=${IMAGE}:buildcache,mode=max \
+            ${{ matrix.service.context }}
