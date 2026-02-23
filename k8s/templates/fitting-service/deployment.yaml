@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fitting-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ai-fitting-mall.labels" . | nindent 4 }}
+    app: fitting-service
+spec:
+  replicas: {{ .Values.fittingService.replicas }}
+  selector:
+    matchLabels:
+      app: fitting-service
+  template:
+    metadata:
+      labels:
+        app: fitting-service
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mysql {{ .Values.mysql.port }}; do
+                echo "MySQL 대기 중..."
+                sleep 3
+              done
+              echo "MySQL 준비 완료"
+      containers:
+        - name: fitting-service
+          image: {{ include "ai-fitting-mall.image" (list . "fitting-service") }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.fittingService.port }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "k8s"
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: spring-datasource-password
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ .Values.fittingService.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.fittingService.port }}
+            initialDelaySeconds: 90
+            periodSeconds: 30

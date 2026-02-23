@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ai-fitting-mall.labels" . | nindent 4 }}
+    app: gateway-service
+spec:
+  replicas: {{ .Values.gateway.replicas }}
+  selector:
+    matchLabels:
+      app: gateway-service
+  template:
+    metadata:
+      labels:
+        app: gateway-service
+    spec:
+      containers:
+        - name: gateway-service
+          image: {{ include "ai-fitting-mall.image" (list . "gateway-service") }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.gateway.port }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "k8s"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ .Values.gateway.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.gateway.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 30
