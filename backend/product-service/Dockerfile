@@ -10,7 +10,7 @@ RUN ./gradlew bootJar --no-daemon -x test
 
 # Runtime Stage
 FROM eclipse-temurin:17-jre-jammy
-RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
+RUN groupadd -g 1001 appgroup && useradd -u 1001 -g appgroup --no-create-home appuser
 WORKDIR /app
 COPY --from=builder /app/build/libs/*.jar app.jar
 RUN chown -R appuser:appgroup /app
