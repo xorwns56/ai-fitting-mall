@@ -25,7 +25,7 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # 빌드 hang 방지
+    timeout-minutes: 30  # 멀티 아키텍처 빌드(QEMU arm64 에뮬레이션)로 인해 15→30분으로 증가
 
     permissions:
       contents: read
@@ -53,6 +53,10 @@ jobs:
           git clone --depth 1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
           git checkout ${{ github.sha }}
 
+      # arm64 크로스 컴파일을 위한 QEMU 설치 (CI 러너는 amd64이므로 필요)
+      - name: Set up QEMU
+        run: docker run --privileged --rm tonistiigi/binfmt --install all
+
       # 멀티 플랫폼 빌드와 캐시를 지원하는 Buildx 빌더를 생성한다
       - name: Set up Docker Buildx
         run: |
@@ -69,6 +73,7 @@ jobs:
           IMAGE=$(echo "${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service.name }}" | tr '[:upper:]' '[:lower:]')
 
           docker buildx build \
+            --platform linux/amd64,linux/arm64 \
             --push \
             --tag "${IMAGE}:latest" \
             --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \

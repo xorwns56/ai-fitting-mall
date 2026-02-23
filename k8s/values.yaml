@@ -1,0 +1,63 @@
+# =============================================================================
+# AI Fitting Mall - Helm Chart Values
+# 모든 설정값은 이 파일에서 관리합니다.
+# 배포 시: helm install ai-fitting-mall ./k8s -n ai-fitting-mall --create-namespace
+# =============================================================================
+
+# 글로벌 이미지 설정
+global:
+  imageRegistry: ghcr.io
+  imageRepository: xorwns56/ai-fitting-mall  # GitHub 사용자명/저장소명
+  imageTag: latest
+  imagePullPolicy: Always
+  # GHCR이 private일 경우 imagePullSecret 설정
+  # imagePullSecret: ghcr-secret
+
+# =============================================================================
+# 인프라 서비스
+# =============================================================================
+
+mysql:
+  image: mysql:8.0
+  port: 3306
+  database: mydb
+  username: root
+  password: "1234"
+  storage: 5Gi
+
+zipkin:
+  image: openzipkin/zipkin:3
+  port: 9411
+
+# =============================================================================
+# 애플리케이션 서비스
+# =============================================================================
+
+gateway:
+  replicas: 1
+  port: 8080
+
+userService:
+  replicas: 1
+  port: 8080
+
+productService:
+  replicas: 1
+  port: 8080
+
+fittingService:
+  replicas: 1
+  port: 8080
+
+frontend:
+  replicas: 1
+  port: 3000
+
+# =============================================================================
+# Ingress
+# =============================================================================
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ai-fitting-mall.local
