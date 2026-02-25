@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-fitting-mall
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/xorwns56/ai-fitting-mall.git
+    targetRevision: main
+    path: k8s
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-fitting-mall
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
