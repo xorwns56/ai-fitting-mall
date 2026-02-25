@@ -18,7 +18,7 @@ global:
 # =============================================================================
 
 mysql:
-  image: mysql:8.0
+  image: public.ecr.aws/docker/library/mysql:8.0
   port: 3306
   database: mydb
   username: root
@@ -60,4 +60,4 @@ frontend:
 ingress:
   enabled: true
   className: nginx
-  host: ai-fitting-mall.local
+  host: localhost

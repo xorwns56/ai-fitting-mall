@@ -16,18 +16,6 @@ spec:
       labels:
         app: product-service
     spec:
-      initContainers:
-        - name: wait-for-mysql
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z mysql {{ .Values.mysql.port }}; do
-                echo "MySQL 대기 중..."
-                sleep 3
-              done
-              echo "MySQL 준비 완료"
       containers:
         - name: product-service
           image: {{ include "ai-fitting-mall.image" (list . "product-service") }}
